@@ -30,7 +30,7 @@ MainComponent::MainComponent() : state(IDLE)
     setAudioChannels(1, 2);
 
     // Set the window size.
-    setSize (300, 200);
+    setSize (300, 150);
 }
 
 MainComponent::~MainComponent()
