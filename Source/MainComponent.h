@@ -11,11 +11,6 @@
 class MainComponent  : public juce::AudioAppComponent, juce::Button::Listener, juce::ChangeListener
 {
 public:
-    enum AppState {
-        IDLE,
-        PLAYING,
-        RECORDING
-    };
 
     //==============================================================================
     MainComponent();
@@ -27,7 +22,7 @@ public:
     void releaseResources() override;
     void buttonClicked(juce::Button* button) override;
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
-
+    void changeState(AppState newState);
     //==============================================================================
     void paint (juce::Graphics& g) override;
     void resized() override;
