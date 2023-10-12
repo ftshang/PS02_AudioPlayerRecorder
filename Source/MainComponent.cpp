@@ -110,6 +110,7 @@ void MainComponent::changeState(AppState newState)
             startButton.setEnabled(true);
             if (oldState == PLAYING)
             {
+                // Stop the transportSource if it was playing.
                 transportSource.stop();
             }
             transportSource.setPosition(0.0);
