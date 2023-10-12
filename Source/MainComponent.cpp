@@ -131,7 +131,7 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
         else {
             state = IDLE;
             stopButton.setEnabled(false);
-            startButton.setEnabled(false);
+            //startButton.setEnabled(false);
         }
     }
 }
