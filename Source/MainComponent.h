@@ -21,8 +21,9 @@ public:
     void getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
     void buttonClicked(juce::Button* button) override;
+    void openFile(bool forOutput);
+    bool loadAudioFile(juce::File& file);
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
-    void changeState(AppState newState);
     //==============================================================================
     void paint (juce::Graphics& g) override;
     void resized() override;
@@ -44,7 +45,7 @@ private:
     juce::AudioTransportSource transportSource;
    
     // state handles the current "mode" of the program.
-    AppState state;
+    AppState state = IDLE;
 
     // Handles file selection.
     std::unique_ptr<juce::FileChooser> chooser;

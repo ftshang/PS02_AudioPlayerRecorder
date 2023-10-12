@@ -1,7 +1,7 @@
 #include "MainComponent.h"
 
 //==============================================================================
-MainComponent::MainComponent() : state(IDLE)
+MainComponent::MainComponent()
 {
     // Open Button Setup
     addAndMakeVisible(openButton);
@@ -41,43 +41,82 @@ MainComponent::~MainComponent()
     shutdownAudio();
 }
 
+bool MainComponent::loadAudioFile(juce::File& file)
+{
+    if (file != juce::File{})
+    {
+        // I. Creates an AudioFormatReader
+        auto* reader = formatManager.createReaderFor(file);
+
+        // II. Validate the created AudioFormatReader
+        if (reader != nullptr)
+        {
+            // III. Instantiate an AudioFormatReaderSource 
+            auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
+
+            // IV. Stop transport source and set the current source to null.
+            transportSource.stop();
+            transportSource.setSource(nullptr);
+
+            // V. Assign the AudioFormatReaderSource to the transportSource.
+            transportSource.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
+            readerSource.reset(newSource.release());
+            return true;
+        }
+    }
+    return false;
+}
+
+void MainComponent::openFile(bool forOutput)
+{
+    chooser = std::make_unique<juce::FileChooser>("Select a WAV file...", juce::File{}, "*.wav");
+    auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+
+    if (forOutput)
+    {
+        chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
+    }
+
+    chooser->launchAsync(chooserFlags, [this, forOutput](const juce::FileChooser& fc)
+        {
+            // Hands playing audio files.
+            if (!forOutput)
+            {
+                juce::File file = fc.getResult();
+
+                if (loadAudioFile(file))
+                {
+                    startButton.setEnabled(true);
+                }
+            }
+
+            // TODO: Handling recording.
+ 
+        });
+}
+
 void MainComponent::buttonClicked(juce::Button* button) 
 {
     if (button == &openButton)
     {
         DBG("Open button clicked!");
-        chooser = std::make_unique<juce::FileChooser>("Select a WAV file to play...", juce::File{}, "*.wav");
-        auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
-
-        chooser->launchAsync(chooserFlags, [this] (const juce::FileChooser& fc) 
-            {
-                auto file = fc.getResult();
-
-                if (file != juce::File{})
-                {
-                    auto* reader = formatManager.createReaderFor(file);
-
-                    if (reader != nullptr)
-                    {
-                        auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
-                        transportSource.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
-
-                        // Enabling startButton once file has been loaded.
-                        startButton.setEnabled(true);
-                        readerSource.reset(newSource.release());
-                    }
-                }
-            });
+        openFile(false);
     }
     else if (button == &startButton)
     {
         DBG("Start button clicked!");
-        changeState(PLAYING);
+        state = PLAYING;
+        transportSource.start();
+        stopButton.setEnabled(true);
+        startButton.setEnabled(false);
     }
     else if (button == &stopButton)
     {
         DBG("Stop button clicked!");
-        changeState(IDLE);
+        state = IDLE;
+        transportSource.stop();
+        stopButton.setEnabled(false);
+        startButton.setEnabled(true);
     }
 }
 
@@ -87,43 +126,12 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
     {
         if (transportSource.isPlaying())
         {
-            changeState(PLAYING);
+            state = PLAYING;
         }
         else {
-            changeState(IDLE);
-        }
-    }
-}
-
-void MainComponent::changeState(AppState newState)
-{
-    if (state != newState)
-    {
-        AppState oldState = state;
-        // Update the state.
-        state = newState;
-
-        switch (state)
-        {
-        case IDLE:
+            state = IDLE;
             stopButton.setEnabled(false);
-            startButton.setEnabled(true);
-            if (oldState == PLAYING)
-            {
-                // Stop the transportSource if it was playing.
-                transportSource.stop();
-            }
-            transportSource.setPosition(0.0);
-            break;
-
-        case PLAYING:
-            transportSource.start();
-            stopButton.setEnabled(true);
             startButton.setEnabled(false);
-            break;
-
-        case RECORDING:
-            break;
         }
     }
 }
