@@ -61,6 +61,8 @@ void MainComponent::buttonClicked(juce::Button* button)
                     {
                         auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
                         transportSource.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
+
+                        // Enabling startButton once file has been loaded.
                         startButton.setEnabled(true);
                         readerSource.reset(newSource.release());
                     }
