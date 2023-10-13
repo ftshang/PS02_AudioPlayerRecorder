@@ -12,33 +12,40 @@
 
 AudioToFileWriter::AudioToFileWriter()
 {
+    DBG("IN AUDIOTOFILEWRITER CONSTRUCTOR");
+}
 
+AudioToFileWriter::~AudioToFileWriter()
+{
+    DBG("In AUDIOTOFILEWRITER DESTRUCTOR");
+    writer.reset();
+    DBG("WRITER RESET");
+    //fileStream.reset();
+    //DBG("FILESTREAM RESET");
+    writer.release();
+    DBG("WRITER RELEASED");
+    fileStream.release();
+    DBG("FILESTREAM RELEASED");
 }
 
 bool AudioToFileWriter::setup(const juce::File& outputFile, int sampleRate, int numChannels)
 {
-    // fileName contains the outputFile's full absolute path name.
-    const juce::String fileName = outputFile.getFullPathName();
-
-    // out will be the file to be exported out.
-    juce::File audioFile = outputFile;
-
     // If the output file exists, delete it and create a new one.
     if (outputFile.exists())
     {
         outputFile.deleteFile();
-        audioFile = juce::File(fileName);
     }
 
+    outputFile.create();
+
     // I. Creates a file stream to which the writer will place audio data.
-    fileStream = std::make_unique<juce::FileOutputStream>(audioFile.createOutputStream()->getFile());
+    fileStream = std::make_unique<juce::FileOutputStream>(outputFile);
 
     if (fileStream != nullptr)
     {
-        juce::WavAudioFormat wavFormat = juce::WavAudioFormat();
-
+        std::unique_ptr<juce::WavAudioFormat> wavFormat = std::make_unique<juce::WavAudioFormat>();
         // II. & III. Initialize and reset writer.
-        writer.reset(juce::WavAudioFormat().createWriterFor(fileStream.get(), sampleRate, numChannels, 16, {}, 0));
+        writer.reset(wavFormat->createWriterFor(fileStream.get(), sampleRate, numChannels, 16, {}, 0));
         return true;
     }
 
@@ -55,6 +62,8 @@ void AudioToFileWriter::closeFile()
 {
     if (fileStream != nullptr)
     {
+        writer->flush();
         fileStream->flush();
+        DBG("Closed filestream.");
     }
 }

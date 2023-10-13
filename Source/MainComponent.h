@@ -30,10 +30,11 @@ public:
 
 private:
     //==============================================================================
-    // Open, Start, and Stop Buttons.
+    // Open, Start, Stop, and Record Buttons.
     juce::TextButton openButton;
     juce::TextButton startButton;
     juce::TextButton stopButton;
+    juce::TextButton recordButton;
 
     // AudioFormatManager containing a list of audio file forms.
     juce::AudioFormatManager formatManager;
@@ -49,6 +50,9 @@ private:
 
     // Handles file selection.
     std::unique_ptr<juce::FileChooser> chooser;
+
+    // AudioToFileWriter instance to handle recording.
+    std::unique_ptr<AudioToFileWriter> fileWriter;
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)

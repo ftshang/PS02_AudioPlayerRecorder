@@ -21,6 +21,7 @@ class AudioToFileWriter
 {
 public:
     AudioToFileWriter();
+    ~AudioToFileWriter();
     bool setup(const juce::File& outputFile, int sampleRate, int numChannels);
     void writeOutputToFile(const juce::AudioBuffer<float>& buffer);
     void closeFile();

@@ -22,6 +22,11 @@ MainComponent::MainComponent()
     stopButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::red);
     stopButton.setEnabled(false);
 
+    // Record Button Setup
+    addAndMakeVisible(recordButton);
+    recordButton.setButtonText("Record to New File");
+    recordButton.addListener(this);
+
     // Register basic formats.
     formatManager.registerBasicFormats();
 
@@ -31,6 +36,9 @@ MainComponent::MainComponent()
     // Set input and output channels.
     setAudioChannels(1, 2);
 
+    // Setup an instance of AudioToFileWriter.
+    fileWriter = std::make_unique<AudioToFileWriter>();
+
     // Set the window size.
     setSize (300, 250);
 }
@@ -38,6 +46,12 @@ MainComponent::MainComponent()
 MainComponent::~MainComponent()
 {
     // This shuts down the audio device and clears the audio source.
+    openButton.removeListener(this);
+    startButton.removeListener(this);
+    stopButton.removeListener(this);
+    recordButton.removeListener(this);
+    transportSource.removeChangeListener(this);
+
     shutdownAudio();
 }
 
@@ -61,6 +75,7 @@ bool MainComponent::loadAudioFile(juce::File& file)
             // V. Assign the AudioFormatReaderSource to the transportSource.
             transportSource.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
             readerSource.reset(newSource.release());
+
             return true;
         }
     }
@@ -79,19 +94,25 @@ void MainComponent::openFile(bool forOutput)
 
     chooser->launchAsync(chooserFlags, [this, forOutput](const juce::FileChooser& fc)
         {
+            juce::File file = fc.getResult();
+
             // Hands playing audio files.
             if (!forOutput)
             {
-                juce::File file = fc.getResult();
-
                 if (loadAudioFile(file))
                 {
                     startButton.setEnabled(true);
                 }
             }
+            else {
+                //juce::File file = fc.getResult();
 
-            // TODO: Handling recording.
- 
+                if (fileWriter->setup(file, 44100, 1))
+                {
+                    state = RECORDING;
+                }
+            }
+
         });
 }
 
@@ -99,12 +120,17 @@ void MainComponent::buttonClicked(juce::Button* button)
 {
     if (button == &openButton)
     {
-        DBG("Open button clicked!");
+        //DBG("Open button clicked!");
+
+        if (transportSource.isPlaying())
+        {
+            transportSource.stop();
+        }
         openFile(false);
     }
     else if (button == &startButton)
     {
-        DBG("Start button clicked!");
+        //DBG("Start button clicked!");
         state = PLAYING;
         transportSource.start();
         stopButton.setEnabled(true);
@@ -112,11 +138,24 @@ void MainComponent::buttonClicked(juce::Button* button)
     }
     else if (button == &stopButton)
     {
-        DBG("Stop button clicked!");
+        //DBG("Stop button clicked!");
+        if (state == RECORDING)
+        {
+            fileWriter->closeFile();
+        }
+        else
+        {
+            transportSource.stop();
+            startButton.setEnabled(true);
+        }
         state = IDLE;
-        transportSource.stop();
         stopButton.setEnabled(false);
-        startButton.setEnabled(true);
+    }
+    else if (button == &recordButton)
+    {
+        //DBG("Record button clicked!");
+        openFile(true);
+        stopButton.setEnabled(true);
     }
 }
 
@@ -144,12 +183,29 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    if (readerSource.get() == nullptr)
+    if (state == IDLE)
     {
         bufferToFill.clearActiveBufferRegion();
         return;
     }
-    transportSource.getNextAudioBlock(bufferToFill);
+    
+    if (state == RECORDING)
+    {
+        //DBG("getNextAudioBlock: state is RECORDING");
+        fileWriter->writeOutputToFile(*bufferToFill.buffer);
+        bufferToFill.clearActiveBufferRegion();
+
+    } else if (state == PLAYING)
+    {
+        if (readerSource.get() == nullptr)
+        {
+            //DBG("readerSource.get() is nullptr");
+            bufferToFill.clearActiveBufferRegion();
+            return;
+        }
+        //DBG("getNextAudioBlock: state is PLAYING");
+        transportSource.getNextAudioBlock(bufferToFill);
+    }
 }
 
 void MainComponent::releaseResources()
@@ -160,10 +216,7 @@ void MainComponent::releaseResources()
 //==============================================================================
 void MainComponent::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
-
-    // You can add your drawing code here!
 }
 
 void MainComponent::resized()
@@ -171,4 +224,5 @@ void MainComponent::resized()
     openButton.setBounds(10, 10, getWidth() - 20, 20);
     startButton.setBounds(10, 40, getWidth() - 20, 20);
     stopButton.setBounds(10, 70, getWidth() - 20, 20);
+    recordButton.setBounds(10, 100, getWidth() - 20, 20);
 }
