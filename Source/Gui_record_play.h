@@ -17,6 +17,15 @@ enum AppState {
     RECORDING
 };
 
+class DisplayAudioWaveForm : public juce::AudioVisualiserComponent
+{
+public:
+    DisplayAudioWaveForm();
+    ~DisplayAudioWaveForm() override;
+    void addAudioData(const juce::AudioBuffer<float>& buffer, int startSample, int numSamples);
+};
+
+
 class AudioToFileWriter
 {
 public:

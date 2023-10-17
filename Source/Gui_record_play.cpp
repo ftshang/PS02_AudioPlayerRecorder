@@ -67,3 +67,28 @@ void AudioToFileWriter::closeFile()
         DBG("Closed filestream.");
     }
 }
+
+
+// DisplayAudioWaveForm methods
+
+// Constructor
+DisplayAudioWaveForm::DisplayAudioWaveForm() : AudioVisualiserComponent(1)
+{
+    setBufferSize(1024);
+    setSamplesPerBlock(256);
+    setNumChannels(1);
+    setColours(juce::Colours::black, juce::Colours::red);
+}
+
+// Destructor
+DisplayAudioWaveForm::~DisplayAudioWaveForm()
+{
+
+}
+
+// addAudioData
+void DisplayAudioWaveForm::addAudioData(const juce::AudioBuffer<float>& buffer, int startSample, int numSamples)
+{
+    //buffer.getArrayOfReadPointers();
+    DBG("Display::AudioWaveForm::addAudioData: called");
+}

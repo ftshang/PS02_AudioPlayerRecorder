@@ -39,6 +39,9 @@ MainComponent::MainComponent()
     // Setup an instance of AudioToFileWriter.
     fileWriter = std::make_unique<AudioToFileWriter>();
 
+    // Set up DisplayAudioWaveForm
+    addAndMakeVisible(waveForm);
+
     // Set the window size.
     setSize (300, 250);
 }
@@ -193,6 +196,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     {
         //DBG("getNextAudioBlock: state is RECORDING");
         fileWriter->writeOutputToFile(*bufferToFill.buffer);
+        waveForm.pushBuffer(bufferToFill);
         bufferToFill.clearActiveBufferRegion();
 
     } else if (state == PLAYING)
@@ -205,6 +209,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         }
         //DBG("getNextAudioBlock: state is PLAYING");
         transportSource.getNextAudioBlock(bufferToFill);
+        waveForm.pushBuffer(bufferToFill);
     }
 }
 
@@ -225,4 +230,5 @@ void MainComponent::resized()
     startButton.setBounds(10, 40, getWidth() - 20, 20);
     stopButton.setBounds(10, 70, getWidth() - 20, 20);
     recordButton.setBounds(10, 100, getWidth() - 20, 20);
+    waveForm.setBounds(10, 140, getWidth() - 20, getHeight() / 4 );
 }
