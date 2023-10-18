@@ -14,7 +14,6 @@
 enum AppState {
     IDLE,
     PLAYING,
-    PAUSED,
     RECORDING
 };
 

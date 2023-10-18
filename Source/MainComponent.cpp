@@ -151,6 +151,7 @@ void MainComponent::buttonClicked(juce::Button* button)
             transportSource.stop();
         }
         openFile(false);
+        //prepareToPlay(deviceManager.getAudioDeviceSetup().bufferSize, deviceManager.getAudioDeviceSetup().sampleRate);
         startTimerHz(30);
     }
     else if (button == &startButton)
@@ -170,15 +171,13 @@ void MainComponent::buttonClicked(juce::Button* button)
         {
             fileWriter->closeFile();
             startButton.setEnabled(false);
-            state = IDLE;
         }
         else
         {
             transportSource.stop();
-            state = PAUSED;
             startButton.setEnabled(true);
         }
-        //state = IDLE;
+        state = IDLE;
         stopButton.setEnabled(false);
         openButton.setEnabled(true);
         recordButton.setEnabled(true);
@@ -198,10 +197,6 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
         if (transportSource.isPlaying())
         {
             state = PLAYING;
-        }
-        else if (state == PAUSED)
-        {
-            startButton.setEnabled(true);
         }
         else {
             state = IDLE;
@@ -223,7 +218,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    if (state == IDLE || state == PAUSED)
+    if (state == IDLE)
     {
         bufferToFill.clearActiveBufferRegion();
         return;
