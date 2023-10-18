@@ -42,6 +42,13 @@ MainComponent::MainComponent()
     // Set up DisplayAudioWaveForm
     addAndMakeVisible(waveForm);
 
+    // Set up scrubber
+    addAndMakeVisible(scrubber);
+    scrubber.setEnabled(false);
+    scrubber.setColour(juce::Slider::ColourIds::thumbColourId, juce::Colours::red);
+    scrubber.addListener(this);
+
+
     // Set the window size.
     setSize (300, 250);
 }
@@ -77,6 +84,7 @@ bool MainComponent::loadAudioFile(juce::File& file)
 
             // V. Assign the AudioFormatReaderSource to the transportSource.
             transportSource.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
+            scrubber.setRange(0, transportSource.getLengthInSeconds());
             readerSource.reset(newSource.release());
 
             return true;
@@ -105,6 +113,7 @@ void MainComponent::openFile(bool forOutput)
                 if (loadAudioFile(file))
                 {
                     startButton.setEnabled(true);
+                    scrubber.setEnabled(true);
                 }
             }
             else {
@@ -112,7 +121,19 @@ void MainComponent::openFile(bool forOutput)
 
                 if (fileWriter->setup(file, 44100, 1))
                 {
+                    DBG("Setup input file");
                     state = RECORDING;
+                    stopButton.setEnabled(true);
+                    startButton.setEnabled(false);
+                    openButton.setEnabled(false);
+                    scrubber.setEnabled(false);
+                    recordButton.setEnabled(false);
+                    scrubber.setValue(0.0);
+                }
+                else {
+                    state = IDLE;
+                    openButton.setEnabled(true);
+                    recordButton.setEnabled(true);
                 }
             }
 
@@ -130,6 +151,7 @@ void MainComponent::buttonClicked(juce::Button* button)
             transportSource.stop();
         }
         openFile(false);
+        startTimerHz(30);
     }
     else if (button == &startButton)
     {
@@ -138,6 +160,8 @@ void MainComponent::buttonClicked(juce::Button* button)
         transportSource.start();
         stopButton.setEnabled(true);
         startButton.setEnabled(false);
+        openButton.setEnabled(false);
+        recordButton.setEnabled(false);
     }
     else if (button == &stopButton)
     {
@@ -145,20 +169,25 @@ void MainComponent::buttonClicked(juce::Button* button)
         if (state == RECORDING)
         {
             fileWriter->closeFile();
+            startButton.setEnabled(false);
+            state = IDLE;
         }
         else
         {
             transportSource.stop();
+            state = PAUSED;
             startButton.setEnabled(true);
         }
-        state = IDLE;
+        //state = IDLE;
         stopButton.setEnabled(false);
+        openButton.setEnabled(true);
+        recordButton.setEnabled(true);
     }
     else if (button == &recordButton)
     {
         //DBG("Record button clicked!");
         openFile(true);
-        stopButton.setEnabled(true);
+
     }
 }
 
@@ -170,10 +199,18 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
         {
             state = PLAYING;
         }
+        else if (state == PAUSED)
+        {
+            startButton.setEnabled(true);
+        }
         else {
             state = IDLE;
             stopButton.setEnabled(false);
-            //startButton.setEnabled(false);
+            scrubber.setEnabled(false);
+            startButton.setEnabled(false);
+            openButton.setEnabled(true);
+            recordButton.setEnabled(true);
+            scrubber.setValue(0.0);
         }
     }
 }
@@ -186,7 +223,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    if (state == IDLE)
+    if (state == IDLE || state == PAUSED)
     {
         bufferToFill.clearActiveBufferRegion();
         return;
@@ -230,5 +267,19 @@ void MainComponent::resized()
     startButton.setBounds(10, 40, getWidth() - 20, 20);
     stopButton.setBounds(10, 70, getWidth() - 20, 20);
     recordButton.setBounds(10, 100, getWidth() - 20, 20);
-    waveForm.setBounds(10, 140, getWidth() - 20, getHeight() / 4 );
+    scrubber.setBounds(10, getHeight() - 40, getWidth() - 20, 20);
+    waveForm.setBounds(10, 140, getWidth() - 20, scrubber.getY() - 150);
+}
+
+void MainComponent::timerCallback()
+{
+    //DBG("timerCallback() called!");
+    scrubber.setValue(transportSource.getCurrentPosition());
+}
+
+void MainComponent::sliderValueChanged(juce::Slider* slider)
+{
+    DBG("slider value: " << slider->getValue());
+    transportSource.setPosition(slider->getValue());
+    DBG("new transport position: " << transportSource.getCurrentPosition());
 }

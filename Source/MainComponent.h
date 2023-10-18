@@ -8,7 +8,7 @@
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
-class MainComponent  : public juce::AudioAppComponent, juce::Button::Listener, juce::ChangeListener
+class MainComponent  : public juce::AudioAppComponent, public juce::Button::Listener, public juce::ChangeListener, public juce::Timer, public juce::Slider::Listener
 {
 public:
 
@@ -24,6 +24,9 @@ public:
     void openFile(bool forOutput);
     bool loadAudioFile(juce::File& file);
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+    void timerCallback() override;
+    void sliderValueChanged(juce::Slider* slider) override;
+
     //==============================================================================
     void paint (juce::Graphics& g) override;
     void resized() override;
@@ -56,6 +59,9 @@ private:
 
     // DisplayAudioWaveForm
     DisplayAudioWaveForm waveForm;
+
+    // Scrubber
+    juce::Slider scrubber;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

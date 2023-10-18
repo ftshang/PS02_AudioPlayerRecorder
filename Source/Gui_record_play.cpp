@@ -30,6 +30,11 @@ AudioToFileWriter::~AudioToFileWriter()
 
 bool AudioToFileWriter::setup(const juce::File& outputFile, int sampleRate, int numChannels)
 {
+    if (outputFile.getFileNameWithoutExtension() == "")
+    {
+        DBG("no file name");
+        return false;
+    }
     // If the output file exists, delete it and create a new one.
     if (outputFile.exists())
     {
@@ -39,16 +44,22 @@ bool AudioToFileWriter::setup(const juce::File& outputFile, int sampleRate, int 
     outputFile.create();
 
     // I. Creates a file stream to which the writer will place audio data.
-    fileStream = std::make_unique<juce::FileOutputStream>(outputFile);
+    fileStream = outputFile.createOutputStream();
 
     if (fileStream != nullptr)
     {
+        DBG("setting up filestream in setup method");
         std::unique_ptr<juce::WavAudioFormat> wavFormat = std::make_unique<juce::WavAudioFormat>();
+        DBG("wavFormat was created");
         // II. & III. Initialize and reset writer.
         writer.reset(wavFormat->createWriterFor(fileStream.get(), sampleRate, numChannels, 16, {}, 0));
+        if (writer != nullptr)
+        {
+            fileStream.release();
+        }
+        DBG("writer reset");
         return true;
     }
-
     return false;
 }
 
@@ -60,11 +71,10 @@ void AudioToFileWriter::writeOutputToFile(const juce::AudioBuffer<float>& buffer
 
 void AudioToFileWriter::closeFile()
 {
+    writer->flush();
     if (fileStream != nullptr)
     {
-        writer->flush();
         fileStream->flush();
-        DBG("Closed filestream.");
     }
 }
 
