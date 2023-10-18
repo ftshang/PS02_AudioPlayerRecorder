@@ -70,13 +70,14 @@ bool MainComponent::loadAudioFile(juce::File& file)
     if (file != juce::File{})
     {
         // I. Creates an AudioFormatReader
-        auto* reader = formatManager.createReaderFor(file);
+        auto* reader(formatManager.createReaderFor(file));
 
         // II. Validate the created AudioFormatReader
         if (reader != nullptr)
         {
             // III. Instantiate an AudioFormatReaderSource 
             auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
+            //transportSource.prepareToPlay(deviceManager.getAudioDeviceSetup().bufferSize, deviceManager.getAudioDeviceSetup().sampleRate);
 
             // IV. Stop transport source and set the current source to null.
             transportSource.stop();
@@ -175,7 +176,9 @@ void MainComponent::buttonClicked(juce::Button* button)
         else
         {
             transportSource.stop();
+            transportSource.releaseResources();
             startButton.setEnabled(true);
+            stopTimer();
         }
         state = IDLE;
         stopButton.setEnabled(false);

@@ -35,6 +35,7 @@ bool AudioToFileWriter::setup(const juce::File& outputFile, int sampleRate, int 
         DBG("no file name");
         return false;
     }
+
     // If the output file exists, delete it and create a new one.
     if (outputFile.exists())
     {
@@ -56,6 +57,7 @@ bool AudioToFileWriter::setup(const juce::File& outputFile, int sampleRate, int 
         if (writer != nullptr)
         {
             fileStream.release();
+            //fileStream.reset();
         }
         DBG("writer reset");
         return true;
@@ -72,6 +74,7 @@ void AudioToFileWriter::writeOutputToFile(const juce::AudioBuffer<float>& buffer
 void AudioToFileWriter::closeFile()
 {
     writer->flush();
+    writer.reset();
     if (fileStream != nullptr)
     {
         fileStream->flush();
